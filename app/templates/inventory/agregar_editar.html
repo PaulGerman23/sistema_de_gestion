@@ -1,0 +1,125 @@
+=== file: app/templates/inventory/agregar_editar.html ===
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">{{ titulo }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.codigo.label(class="form-label") }}
+                                {{ form.codigo(class="form-control" + (" is-invalid" if form.codigo.errors else "")) }}
+                                {% if form.codigo.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.codigo.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.categoria_id.label(class="form-label") }}
+                                {{ form.categoria_id(class="form-control" + (" is-invalid" if form.categoria_id.errors else "")) }}
+                                {% if form.categoria_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.categoria_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.descripcion.label(class="form-label") }}
+                        {{ form.descripcion(class="form-control" + (" is-invalid" if form.descripcion.errors else "")) }}
+                        {% if form.descripcion.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.descripcion.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.precio_costo.label(class="form-label") }}
+                                {{ form.precio_costo(class="form-control" + (" is-invalid" if form.precio_costo.errors else ""), step="0.01") }}
+                                {% if form.precio_costo.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.precio_costo.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.precio_venta.label(class="form-label") }}
+                                {{ form.precio_venta(class="form-control" + (" is-invalid" if form.precio_venta.errors else ""), step="0.01") }}
+                                {% if form.precio_venta.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.precio_venta.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.stock.label(class="form-label") }}
+                                {{ form.stock(class="form-control" + (" is-invalid" if form.stock.errors else "")) }}
+                                {% if form.stock.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.stock.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.proveedor_id.label(class="form-label") }}
+                        {{ form.proveedor_id(class="form-control" + (" is-invalid" if form.proveedor_id.errors else "")) }}
+                        {% if form.proveedor_id.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.proveedor_id.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar
+                        </button>
+                        <a href="{{ url_for('inventory.listar') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

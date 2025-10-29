@@ -1,0 +1,99 @@
+
+{% extends "base.html" %}
+
+{% block title %}Inventario - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Lista de Productos</h3>
+                <div class="card-tools">
+                    {% if current_user.rol.tipo in ['superadmin', 'admin'] %}
+                    <a href="{{ url_for('inventory.agregar') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Agregar Producto
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Proveedor</th>
+                            <th>Precio Costo</th>
+                            <th>Precio Venta</th>
+                            <th>Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in productos %}
+                        <tr>
+                            <td>{{ producto.codigo }}</td>
+                            <td>{{ producto.descripcion }}</td>
+                            <td>{{ producto.categoria.nombre if producto.categoria else '-' }}</td>
+                            <td>{{ producto.proveedor.razon_social if producto.proveedor else '-' }}</td>
+                            <td>${{ "%.2f"|format(producto.precio_costo) }}</td>
+                            <td>${{ "%.2f"|format(producto.precio_venta) }}</td>
+                            <td>
+                                <span class="badge badge-{{ 'danger' if producto.stock < 10 else 'success' }}">
+                                    {{ producto.stock }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if current_user.rol.tipo in ['superadmin', 'admin'] %}
+                                <a href="{{ url_for('inventory.editar', id=producto.id) }}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="eliminarProducto({{ producto.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function eliminarProducto(id) {
+    Swal.fire({
+        title: '¿Está seguro?',
+        text: "Esta acción eliminará el producto",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Crear formulario y enviarlo
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/inventario/eliminar/' + id;
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '{{ csrf_token() }}';
+            
+            form.appendChild(csrfInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

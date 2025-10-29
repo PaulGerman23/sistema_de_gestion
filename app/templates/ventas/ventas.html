@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Ventas - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Productos</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <input type="text" id="buscarProducto" class="form-control" placeholder="Buscar producto por código o descripción...">
+                </div>
+                <div id="resultadosBusqueda"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Carrito de Venta</h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cant.</th>
+                            <th>Precio</th>
+                            <th>Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="carritoBody">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No hay productos en el carrito</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="mt-3">
+                    <h4>Total: $<span id="totalVenta">0.00</span></h4>
+                </div>
+
+                <hr>
+
+                <div class="form-group">
+                    <label>Cliente (Opcional)</label>
+                    <select id="clienteSelect" class="form-control">
+                        <option value="">Cliente General</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Pago</label>
+                    <select id="tipoPagoSelect" class="form-control">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Observación</label>
+                    <textarea id="observacionText" class="form-control" rows="2"></textarea>
+                </div>
+
+                <button id="btnFinalizarVenta" class="btn btn-success btn-block" disabled>
+                    <i class="fas fa-check"></i> Finalizar Venta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let carrito = [];
+let busquedaTimeout;
+const csrfToken = '{{ csrf_token() }}';
+
+$('#buscarProducto').on('input', function() {
+    clearTimeout(busquedaTimeout);
+    const termino = $(this).val();
+    
+    if (termino.length < 2) {
+        $('#resultadosBusqueda').html('');
+        return;
+    }
+
+    busquedaTimeout = setTimeout(function() {
+        $.ajax({
+            url: "{{ url_for('ventas.buscar') }}",
+            data: { q: termino },
+            success: function(productos) {
+                let html = '<div class="list-group">';
+                if (productos.length === 0) {
+                    html += '<div class="list-group-item">No se encontraron productos</div>';
+                } else {
+                    productos.forEach(function(p) {
+                        html += `
+                            <a href="#" class="list-group-item list-group-item-action agregar-producto" 
+                               data-id="${p.id}" 
+                               data-codigo="${p.codigo}"
+                               data-descripcion="${p.descripcion}"
+                               data-precio="${p.precio}"
+                               data-stock="${p.stock}">
+                                <strong>${p.codigo}</strong> - ${p.descripcion} 
+                                <span class="badge badge-info float-right">$${p.precio.toFixed(2)}</span>
+                                <span class="badge badge-secondary float-right mr-1">Stock: ${p.stock}</span>
+                            </a>
+                        `;
+                    });
+                }
+                html += '</div>';
+                $('#resultadosBusqueda').html(html);
+            }
+        });
+    }, 300);
+});
+
+$(document).on('click', '.agregar-producto', function(e) {
+    e.preventDefault();
+    const producto = {
+        id: $(this).data('id'),
+        codigo: $(this).data('codigo'),
+        descripcion: $(this).data('descripcion'),
+        precio: $(this).data('precio'),
+        stock: $(this).data('stock'),
+        cantidad: 1
+    };
+
+    const index = carrito.findIndex(p => p.id === producto.id);
+    if (index !== -1) {
+        if (carrito[index].cantidad < producto.stock) {
+            carrito[index].cantidad++;
+        } else {
+            Swal.fire('Stock insuficiente', 'No hay más stock disponible', 'warning');
+            return;
+        }
+    } else {
+        carrito.push(producto);
+    }
+
+    actualizarCarrito();
+    $('#buscarProducto').val('');
+    $('#resultadosBusqueda').html('');
+});
+
+function actualizarCarrito() {
+    const tbody = $('#carritoBody');
+    tbody.html('');
+
+    if (carrito.length === 0) {
+        tbody.html('<tr><td colspan="5" class="text-center text-muted">No hay productos en el carrito</td></tr>');
+        $('#totalVenta').text('0.00');
+        $('#btnFinalizarVenta').prop('disabled', true);
+        return;
+    }
+
+    let total = 0;
+    carrito.forEach(function(item, index) {
+        const subtotal = item.precio * item.cantidad;
+        total += subtotal;
+
+        tbody.append(`
+            <tr>
+                <td>${item.descripcion}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm cantidad-input" 
+                           data-index="${index}" value="${item.cantidad}" min="1" max="${item.stock}" 
+                           style="width: 60px;">
+                </td>
+                <td>$${item.precio.toFixed(2)}</td>
+                <td>$${subtotal.toFixed(2)}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm eliminar-item" data-index="${index}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `);
+    });
+
+    $('#totalVenta').text(total.toFixed(2));
+    $('#btnFinalizarVenta').prop('disabled', false);
+}
+
+$(document).on('change', '.cantidad-input', function() {
+    const index = $(this).data('index');
+    const nuevaCantidad = parseInt($(this).val());
+    const stock = carrito[index].stock;
+
+    if (nuevaCantidad > stock) {
+        Swal.fire('Stock insuficiente', 'La cantidad no puede ser mayor al stock', 'warning');
+        $(this).val(carrito[index].cantidad);
+        return;
+    }
+
+    if (nuevaCantidad < 1) {
+        $(this).val(1);
+        return;
+    }
+
+    carrito[index].cantidad = nuevaCantidad;
+    actualizarCarrito();
+});
+
+$(document).on('click', '.eliminar-item', function() {
+    const index = $(this).data('index');
+    carrito.splice(index, 1);
+    actualizarCarrito();
+});
+
+$('#btnFinalizarVenta').click(function() {
+    if (carrito.length === 0) {
+        Swal.fire('Carrito vacío', 'Agregue productos al carrito', 'warning');
+        return;
+    }
+
+    const clienteId = $('#clienteSelect').val() || null;
+    const tipoPago = $('#tipoPagoSelect').val();
+    const observacion = $('#observacionText').val();
+
+    const datos = {
+        carrito: carrito,
+        cliente_id: clienteId,
+        tipo_pago: tipoPago,
+        observacion: observacion
+    };
+
+    $.ajax({
+        url: "{{ url_for('ventas.finalizar') }}",
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(datos),
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        success: function(response) {
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Venta Registrada',
+                    text: `Venta #${response.codigo_venta} - Total: $${response.total.toFixed(2)}`,
+                    confirmButtonText: 'Aceptar'
+                }).then(() => {
+                    carrito = [];
+                    actualizarCarrito();
+                    $('#clienteSelect').val('');
+                    $('#tipoPagoSelect').val('efectivo');
+                    $('#observacionText').val('');
+                });
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON || {};
+            Swal.fire('Error', response.message || 'Error al procesar la venta', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}
